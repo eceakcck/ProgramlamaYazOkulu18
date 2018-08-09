@@ -1,0 +1,134 @@
+;; The first three lines of this file were inserted by DrRacket. They record metadata
+;; about the language level of this file in a form that our tools can easily process.
+#reader(lib "htdp-advanced-reader.ss" "lang")((modname evren-01) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #t #t none #f () #f)))
+; bootstrapworld reactive (ish) racket versiyonu
+(require 2htdp/universe)
+(require 2htdp/image)
+
+
+(define FRAME-RATE 12)
+(define BACKGROUND (bitmap "imaj/bagro.jpeg"))
+(define BACKGROUND-SCENE
+(place-image/align BACKGROUND  0 0 "left" "top" (empty-scene (image-width BACKGROUND) (image-height BACKGROUND))))
+;vektör==================================================
+  ;x-sayı
+  ;y-sayı
+(define-struct vc (x y))
+
+(define vektor (make-vc 3 4))
+(define vektoor (make-vc 7 8))
+;+vc vc vc -> vc
+;iki vektörün toplamını hesaplar.
+(check-expect (+vc (make-vc 3 4) (make-vc 6 7))
+              (make-vc 9 11))
+(define (+vc m n)
+        (make-vc
+          (+ (vc-x m) (vc-x n))
+          (+ (vc-y m) (vc-y n))))
+;fark-vc vc vc -> vc
+;iki vektörün farkını hesaplar                        
+(define (fvc m n)
+              (make-vc
+                 (- (vc-x m) (vc-x n))
+                 (- (vc-y m) (vc-y n))))
+;=====================================================================================================
+ (define-struct dunya(roket benzin uzayli))
+;======================================================================
+;cisim
+ ; imaj:resim
+ ; yer:vc
+ ; hız:vc
+ ; ivme:vc
+(define-struct cisim (imaj yer hiz ivme))
+
+(define obje1 (make-cisim (circle 50 "solid" "red") (make-vc 1 2) (make-vc 2 4) (make-vc 3 6)))
+(define obje2 (make-cisim (star 50 "solid" "purple") (make-vc 4 8) (make-vc 5 10) (make-vc 6 12)))
+
+;cisim-ilerleme cisim-> cisim
+;fizik kurallarına göre cismin ilerlemesini sağlar
+(check-expect
+  (cisim-ilerleme obje2)              
+                  (make-cisim
+                   (star 50 "solid" "purple")
+                   (make-vc 9 18)
+                   (make-vc 11 22)
+                   (make-vc 6 12)))
+
+(define
+  (cisim-ilerleme b)
+            (make-cisim
+                   (cisim-imaj b)
+                   (+vc (cisim-yer b) (cisim-hiz b))
+                   (+vc (cisim-hiz b) (cisim-ivme b))
+                   (cisim-ivme b)))
+
+;dunya-ilerleme---dunya alir dunya verirr
+(define (dunya-ilerleme w) (make-dunya (cisim-ilerleme (dunya-roket) (dunya-benzin) (dunya-uzayli))))
+;================================================================================!!!!!!!!!!!!!!!!!!!+================================================
+; ***** vector/cisim image fonksiyonları
+; ***** fonksiyonları buradan kopyalanabilir
+
+; place-image/vc resim vc scene -> scene
+; bir sahneye vectora göre bir imaj yerleştir
+(check-expect
+ (place-image/vc (circle 10 "solid" "yellow") (make-vc 5 10) (square 30 "solid" "red"))
+ (place-image/align (circle 10 "solid" "yellow") 5 10 "left" "top" (square 30 "solid" "red")))
+
+(define (place-image/vc im v sahne)
+  (place-image/align im (vc-x v) (vc-y v) "left" "top"  sahne))
+
+; place-line/vc vc vc color scene -> scene
+; add line from v1 to v2 to scene
+(check-expect
+ (place-line/vc (make-vc 20 30) (make-vc 30 40) "black" (rectangle 200 100 "solid" "white"))
+  (add-line (rectangle 200 100 "solid" "white") 20 30 30 40 "black"))
+
+(define (place-line/vc v1 v2 renk sahne)
+  (add-line sahne (vc-x v1) (vc-y v1) (vc-x v2) (vc-y v2) renk ))
+
+; place-cisim cisim scene -> scene
+; bir cisim kendi yer kordinatlarına göre sahneye yerleştir
+(check-expect
+ (place-cisim (make-cisim (circle 10 "solid" "yellow") (make-vc 10 10) (make-vc 99 99) (make-vc 99 99)) (square 100 "solid" "black"))
+ (place-image/vc (circle 10 "solid" "yellow") (make-vc 10 10)  (square 100 "solid" "black")))
+
+(define (place-cisim c sahne)
+  (place-image/vc (cisim-imaj c) (cisim-yer c) sahne))
+
+
+
+
+; vektör testleri
+(define v1 (make-vc 150 150))
+(define v2 (make-vc 120 30))
+(define origin (make-vc 0 0))
+
+
+; vektör toplam gösterisi
+(place-line/vc origin (+vc v1 v2) "green"
+                                     (place-line/vc origin v1 "pink"
+                                                    (place-line/vc v1 (+vc v1 v2)  "yellow" (rectangle 300 225 "solid" "black"))))
+
+
+;================================================================================!!!!!!!!!!!!!!!!!!!+================================================
+(define (dunya-ciz w) BACKGROUND-SCENE)
+
+(define (dunya-tus w t) w)
+
+(define (dunya-fare w x y m) w)
+
+(define yaradilis (make-dunya (make-cisim (star 50 "solid" "red") (make-vc 2 2) (make-vc 3 3) (make-vc 1 2))))
+
+(big-bang yaradilis
+  (on-tick dunya-ilerleme (/ 1.0 FRAME-RATE))
+  (on-draw dunya-ciz)
+  (on-key dunya-tus)
+  (on-mouse dunya-fare))
+
+
+            
+                   
+           
+  
+            
+             

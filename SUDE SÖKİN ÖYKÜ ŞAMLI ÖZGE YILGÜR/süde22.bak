@@ -1,0 +1,54 @@
+;; The first three lines of this file were inserted by DrRacket. They record metadata
+;; about the language level of this file in a form that our tools can easily process.
+#reader(lib "htdp-advanced-reader.ss" "lang")((modname süde22) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #t #t none #f () #f)))
+;cisim:obje
+;imaj:resim
+;yer:vc
+;hız:vc
+;ivme:vc
+(define-struct cisim (imaj yer hız ivme))
+
+(define oyuncu (make-cisim (circle 50 "solid" "pink") (make-vc 10 7) (make-vc 5 8) (make-vc 3 9)))
+
+(define hedef-1  (make-cisim (star 20 "solid" "yellow") (make-vc 4 5) (make-vc 9 6) (make-vc 9 3)))
+
+(define hedef-2 (make-cisim (star 40 "solid" "yellow") (make-vc 4 5) (make-vc 9 10) (make-vc 9 3)))
+
+(define tehlike (make-cisim (circle 50 "solid" "white") 
+
+
+
+
+
+
+
+
+;dünya
+;c:cisim
+(define struct-dünya (oyuncu
+                     tehlike
+                     arka-plan
+                     hedef-1
+                     hedef-2
+                     score))
+
+; oyun başlığı:oyununuzun adını buraya yazınız
+(define BAŞLIK "SÜDE")
+(define BAŞLIK-RENGİ "black")
+
+(define oyuncu  (circle 50 "solid" "pink") )
+(define hedef1 (star 20 "solid" "yellow"))
+(define hedef2 (star 40 "solid" "yellow"))
+(define tehlike (circle 50 "solid" "white"))
+(define arka-plan (bitmap "arkaplan.JPG"))
+(define score 100)
+
+
+ ;dünya-çiz: dünya->sahne
+ 
+
+ (define (dünya-çiz w) (place-cisim (place-cisim (dünya-oyuncu w) (place-cisim (dünya-tehlike w) (place-cisim) (dünya-hedef1 w) (place-cisim) (dünya-hedef2 w))) arka-plan))
+
+
+  
+  

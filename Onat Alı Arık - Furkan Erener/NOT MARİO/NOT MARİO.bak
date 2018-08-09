@@ -1,0 +1,190 @@
+;; The first three lines of this file were inserted by DrRacket. They record metadata
+;; about the language level of this file in a form that our tools can easily process.
+#reader(lib "htdp-advanced-reader.ss" "lang")((modname |NOT MARİO|) (read-case-sensitive #t) (teachpacks ((lib "image.rkt" "teachpack" "2htdp"))) (htdp-settings #(#t constructor repeating-decimal #t #t none #f ((lib "image.rkt" "teachpack" "2htdp")) #f)))
+
+
+;vc
+;x sayı x komponenti
+;y sayı y kompenenti
+
+(define-struct vc (x y))
+
+
+;+vc: vc vc --> vc
+;iki vektörün toplamını hesaplar.
+(check-expect
+ (+vc (make-vc 7 5) (make-vc 3 4))
+ (make-vc 10 9))
+
+(define
+  (+vc v1 v2)
+       (make-vc
+       (+ (vc-x v1) (vc-x v2))
+       (+ (vc-y v1) (vc-y v2))))
+
+;-vc : vc vc ---> vc
+;iki vektörün farkını hesaplar.
+(check-expect
+ (-vc (make-vc 3 5)  (make-vc 3 9))
+      (make-vc 0 -4))
+
+ (define
+   (-vc -v1 -v2)
+            (make-vc
+             (- (vc-x -v1) (vc-x -v2))
+             (- (vc-y -v1) (vc-y -v2))))
+
+
+;cisim :obje
+;imaj :resim
+;yer :vc 
+;hız :vc 
+;ivme :vc 
+(define-struct cisim
+  (resim yer hız ivme))
+
+(define obje (make-cisim
+              (circle 40 "solid" "gold") (make-vc 1 1) (make-vc 2 3) (make-vc -1 -10)))
+
+(define obje2 (make-cisim
+              (circle 40 "solid" "gold") (make-vc 2 2) (make-vc 15 5) (make-vc -1 -10)))
+;cisim-çarptı?
+;cisim --> mantıksal
+
+(define (cisim-çarptı? c)
+(and (< 0 (vc-y (cisim-ivme c)))
+  (<= (image-height BACKGROUND)
+                                 (vc-y (cisim-yer c)))))
+
+
+;yön-değiştir
+;cismin yönünü değiştirir.
+;(define (yön-değiştir c) ((make-cisim (cisim-resim c)
+                                    ; (cisim-yer c) (make-vc (vc-x (cisim-hız c)) (* (vc-y (cisim-hız c)) -1))) (cisim-ivme c)))
+
+;cisim-hareket
+;cisim --> cisim
+;cisim çarptıysa yönünü değiştirir.
+;çarpmadıysa cisim-ilerleme fonksiyonunu çağırır.
+
+;(define (cisim-hareket c) (cond
+                           ; [(cisim-çarptı? c) (yön-değiştir c)]
+                            ;[else (cisim-ilerleme c)]))
+
+;cisim-ilerleme cisim ---> cisim
+;fizik kurallarına göre cisim 1 saniye ilerliyor.
+
+
+
+
+(check-expect
+ (cisim-ilerleme (make-cisim (circle 40 "solid" "gold")
+                          (make-vc 3 4) (make-vc 1 0) (make-vc -1 -3)))
+              (make-cisim (circle 40 "solid" "gold")
+                          (make-vc 4 4) (make-vc 0 -3) (make-vc -1 -3)))
+
+(check-expect
+ (cisim-ilerleme (make-cisim  (circle 40 "solid" "gold")
+                          (make-vc 3 5) (make-vc 2 4) (make-vc -1 -3)))
+ (make-cisim (circle 40 "solid" "gold")
+                          (make-vc 5 9) (make-vc 1 1) (make-vc -1 -3)))
+
+(define
+ (cisim-ilerleme c) (make-cisim (cisim-resim c)
+                            (+vc (cisim-yer c) (cisim-hız c)) (+vc (cisim-hız c) (cisim-ivme c)) (cisim-ivme c)))
+                            
+; ***** vector/cisim image fonksiyonları
+; ***** fonksiyonları buradan kopyalanabilir
+
+; place-image/vc resim vc scene -> scene
+; bir sahneye vectora göre bir imaj yerleştir
+(check-expect
+ (place-image/vc (circle 10 "solid" "yellow") (make-vc 5 10) (square 30 "solid" "red"))
+ (place-image/align (circle 10 "solid" "yellow") 5 10 "left" "top" (square 30 "solid" "red")))
+
+(define (place-image/vc im v sahne)
+  (place-image/align im (vc-x v) (vc-y v) "left" "top"  sahne))
+
+; place-line/vc vc vc color scene -> scene
+; add line from v1 to v2 to scene
+(check-expect
+ (place-line/vc (make-vc 20 30) (make-vc 30 40) "black" (rectangle 200 100 "solid" "white"))
+  (add-line (rectangle 200 100 "solid" "white") 20 30 30 40 "black"))
+
+(define (place-line/vc v1 v2 renk sahne)
+  (add-line sahne (vc-x v1) (vc-y v1) (vc-x v2) (vc-y v2) renk ))
+
+; place-cisim cisim scene -> scene
+; bir cisim kendi yer kordinatlarına göre sahneye yerleştir
+(check-expect
+ (place-cisim (make-cisim (circle 10 "solid" "yellow") (make-vc 10 10) (make-vc 99 99) (make-vc 99 99)) (square 100 "solid" "black"))
+ (place-image/vc (circle 10 "solid" "yellow") (make-vc 10 10)  (square 100 "solid" "black")))
+
+(define (place-cisim c sahne)
+  (place-image/vc (cisim-resim c) (cisim-yer c) sahne))
+
+
+
+; bootstrapworld reactive (ish) racket versiyonu
+(require 2htdp/universe)
+(require 2htdp/image)
+
+(define FRAME-RATE 12)
+(define BACKGROUND (bitmap "bsw/Teachpacks/teachpack-images/mariobg.gif"))
+(define BACKGROUND-SCENE
+  (place-image/align BACKGROUND  0 0 "left" "top" (empty-scene (image-width BACKGROUND) (image-height BACKGROUND))))
+
+;tehlike -> cisim
+;hedef -> cisim
+;oyuncu -> cisim
+;skor -> sayı
+
+(define-struct dünya
+  (tehlike hedef oyuncu skor))
+
+;dünya-ilerleme : dünya ---> dünya
+
+(define (dünya-çiz w) (place-cisim (dünya-tehlike w)
+                                   (place-cisim (dünya-hedef w)
+                                                (place-cisim (dünya-oyuncu w)
+                                                             (place-image (text (string-append "Score: " (number->string (dünya-skor w))) 20 "black")
+                                                                        200 15 
+                                                             BACKGROUND-SCENE)))))
+
+(define (dünya-tuş w t)
+  (make-dünya
+   (dünya-hedef w)
+   (dünya-tehlike w)
+   (make-cisim
+    (cisim-resim OYUNCU)
+    (make-vc (+ (vc-y (cisim-yer (dünya-oyuncu w))) (cond [(string=? t " ") -20]
+                                                            [else 0])) (vc-y (cisim-yer (dünya-oyuncu w))) )(cisim-hız (dünya-oyuncu w)) (cisim-ivme (dünya-oyuncu w)))
+   (dünya-skor w)))
+   
+                     
+
+(define (dünya-fare w x y m) w)
+
+(define (dünya-ilerleme w) (make-dünya (cisim-ilerleme (dünya-oyuncu w))
+                                       (cisim-ilerleme (dünya-tehlike w))
+                                       (cisim-ilerleme (dünya-hedef w))
+                                       (dünya-skor w)))
+                                                                 
+;oyuncu , tehlike , hedef tanımlar.
+(define HEDEF (make-cisim (scale 0.7 (bitmap "bsw/Teachpacks/teachpack-images/mushroom.png")) (make-vc 200 150) (make-vc 0 0) (make-vc 0 0)))
+(define TEHLİKE (make-cisim (bitmap "bsw/Teachpacks/teachpack-images/goomba.png") (make-vc 100 200) (make-vc 0 0) (make-vc 0 0)))
+(define OYUNCU (make-cisim (bitmap "bsw/Teachpacks/teachpack-images/mario2.png") (make-vc 0 200) (make-vc 0 0) (make-vc 0 0)))
+(define SKOR 100)
+
+;oyuncu , tehlike , hedef hareket ettirir.
+
+
+;dünya=>cisim
+(define yaradılış (make-dünya TEHLİKE OYUNCU HEDEF SKOR))
+
+
+
+(big-bang yaradılış
+  (on-tick dünya-ilerleme (/ 1.0 FRAME-RATE))
+  (on-draw dünya-çiz)
+  (on-key dünya-tuş))

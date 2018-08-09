@@ -1,0 +1,268 @@
+;; The first three lines of this file were inserted by DrRacket. They record metadata
+;; about the language level of this file in a form that our tools can easily process.
+#reader(lib "htdp-advanced-reader.ss" "lang")((modname evrenvector) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #t #t none #f () #f)))
+;DINOZOR OYUNU
+;HUDA YENIOCAK
+;04/08/2018
+
+
+
+
+; bootstrapworld reactive (ish) racket versiyonu
+(require 2htdp/universe)
+(require 2htdp/image)               
+
+
+(define FRAME-RATE 12)
+
+(define-struct vc (x y))
+
+;+vc :vc, vc -->vc
+;vectorlerin x ve y bilesenlerini toplayip yeni bir vector verir.
+;cisim
+;imaj-->resim
+;yer :vc
+;hiz: vc
+;ivme: vc
+
+(check-expect ( +vc (make-vc 2 3) (make-vc 4 5)) (make-vc 6 8))
+(check-expect ( +vc (make-vc 5 6) (make-vc 1 3)) (make-vc 6 9))
+(define (+vc v1 v2) (make-vc (+ ( vc-x v1) ( vc-x v2)) (+ ( vc-y v1) ( vc-y v2))))
+(define (-vc v1 v2) (make-vc (- ( vc-x v1) ( vc-x v2)) (- ( vc-y v1) ( vc-y v2))))
+(define (mag-vc v)
+  (sqrt (+ (sqr (vc-x v)) (sqr (vc-y v)))))
+
+
+
+
+
+
+;cisim ilerleme cisim-->cisim
+;fizik kurallarina gore cisim 1 saniye ileriyor
+
+
+
+(define (cisim-ilerleme cisim )
+  (make-cisim (cisim-imaj cisim)
+                                   (+vc (cisim-yer cisim) (cisim-hiz cisim))
+                                   (+vc (cisim-hiz cisim) (cisim-ivme cisim))
+                                   (cisim-ivme cisim)))
+
+
+
+(check-expect
+ (cisim-ilerleme (make-cisim (circle 50 "solid" "blue")
+                            (make-vc 1 1) (make-vc 2 3) (make-vc -1 -3)))
+                (make-cisim (circle 50 "solid" "blue")
+                            (make-vc 3 4) (make-vc 1 0) (make-vc -1 -3)))
+
+
+
+
+
+
+(define cismim (circle 50 "solid" "green"))
+
+
+; ***** vector/cisim image fonksiyonları
+; ***** fonksiyonları buradan kopyalanabilir
+
+; place-image/vc resim vc scene -> scene
+; bir sahneye vectora göre bir imaj yerleştir
+(check-expect
+ (place-image/vc (circle 10 "solid" "yellow") (make-vc 5 10) (square 30 "solid" "red"))
+ (place-image/align (circle 10 "solid" "yellow") 5 10 "left" "top" (square 30 "solid" "red")))
+
+(define (place-image/vc im v sahne)
+  (place-image/align im (vc-x v) (vc-y v) "left" "top"  sahne))
+
+; place-line/vc vc vc color scene -> scene
+; add line from v1 to v2 to scene
+(check-expect
+ (place-line/vc (make-vc 20 30) (make-vc 30 40) "black" (rectangle 200 100 "solid" "white"))
+  (add-line (rectangle 200 100 "solid" "white") 20 30 30 40 "black"))
+
+(define (place-line/vc v1 v2 renk sahne)
+  (add-line sahne (vc-x v1) (vc-y v1) (vc-x v2) (vc-y v2) renk ))
+
+; place-cisim cisim scene -> scene
+; bir cisim kendi yer kordinatlarına göre sahneye yerleştir
+(check-expect
+ (place-cisim (make-cisim (circle 10 "solid" "yellow") (make-vc 10 10) (make-vc 99 99) (make-vc 99 99)) (square 100 "solid" "black"))
+ (place-image/vc (circle 10 "solid" "yellow") (make-vc 10 10)  (square 100 "solid" "black")))
+
+(define (place-cisim c sahne)
+  (place-image/vc (cisim-imaj c) (cisim-yer c) sahne))
+
+
+
+
+; vektör testleri
+(define v1 (make-vc 150 150))
+(define v2 (make-vc 120 30))
+(define origin (make-vc 0 0))
+
+
+; vektör toplam gösterisi
+(place-line/vc origin (+vc v1 v2) "green"
+                                     (place-line/vc origin v1 "pink"
+                                                    (place-line/vc v1 (+vc v1 v2)  "yellow" (rectangle 300 225 "solid" "black"))))
+
+
+               
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                                                                 Dinozor Oyunu
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Veri yapimi oyun yapim suresince kullanacaklarim 
+(define BACKGROUND-SCENE (place-image (text "DINOZOR OYUNU
+HUDA YENIOCAK   04/08/2018"  18 "black" ) 200 20 (bitmap "crater01.png")))
+(define TEHLIKE-IMAJ (scale (/ 1 3.5) (bitmap  "meteorB0063-F.png")))
+(define HEDEF-IMAJ (scale (/ 1 5) (bitmap  "yemek2.png")))
+(define OYUNCU-IMAJ (scale (/ 1 4) (bitmap  "dinozor2.png"))) 
+(define EKRAN-YUKSEKLIGI 480)
+(define EKRAN-GENISLIGI 640)
+(define SKOR 100)
+(define skor-y 20)
+(define skor-x 35)
+(define OYUNCU-YUKSEKLIK 90)
+(define OYUNCU-GENISLIK 60)
+
+(define-struct cisim (imaj yer hiz ivme))
+
+(define TEHLIKE1 (make-cisim TEHLIKE-IMAJ (make-vc 100 0) (make-vc 0 15) (make-vc 0 0.01)))
+(define TEHLIKE2 (make-cisim TEHLIKE-IMAJ (make-vc 400 0) (make-vc 0 10) (make-vc 0 0.01)))
+(define OYUNCU (make-cisim OYUNCU-IMAJ (make-vc 275 380) (make-vc 0 0) (make-vc 0 0)))
+(define HEDEF1 (make-cisim HEDEF-IMAJ (make-vc 500 150) (make-vc 0 15) (make-vc 0 0.01)))
+(define HEDEF2 (make-cisim HEDEF-IMAJ (make-vc 310 150) (make-vc 0 10) (make-vc 0 0.01)))
+
+
+
+
+
+
+;dunya
+;oyuncu: cisim
+;hedef1: cisim
+;hedef2: cisim
+;tehlike1: cisim
+;tehlike2: cisim
+;skor: sayi
+(define-struct dunya (oyuncu hedef1 hedef2 tehlike1 tehlike2 skor))
+
+;cisim-mesafe cisim cisim ->sayi
+(define (cisim-mesafe c1 c2) (mag-vc (-vc (cisim-yer c1) (cisim-yer c2))))
+
+;carptimi? cisimlerin carpip carpmadigina karar verir.
+;carptimi? cisim cisim -> mantiksal
+(define (carptimi? c1 c2)
+    (<= (cisim-mesafe c1 c2) (+ (/ (image-height (cisim-imaj c1)) 6) (/ (image-height (cisim-imaj c2)) 6))))
+    
+
+
+;dunya-ciz dunya->sahne
+(define (dunya-ciz w)
+    (cond
+    ((< (dunya-skor w) 0 ) (overlay (text "OYUN BITTI !
+DINOZORLARIN SOYU TUKENDI !" 40 "navy") (scale 1.8 (bitmap  "goktasi.Jpeg"))))
+    ((> (dunya-skor w) 500) (overlay (text "KAZANDIN ! 
+DINOZORLARIN SOYU TUKENME
+ TEHLIKESINDEN KURTULDU !" 40 "red") (overlay (bitmap  "dinozor.jpeg") (rectangle 950 650 "solid" "white"))))  
+    (else  (place-image (text (number->string (dunya-skor w)) 20 "black") skor-x skor-y
+               (place-cisim (dunya-oyuncu w) (place-cisim (dunya-hedef1 w) (place-cisim (dunya-hedef2 w) (place-cisim (dunya-tehlike1 w) (place-cisim (dunya-tehlike2 w) BACKGROUND-SCENE)))))))))
+ 
+
+;alttakini-dondur cisim sayi ->cisim
+;eger cisim alttan ciktiysa y koordinati tekrar 0 olsun' x koordinati rastlanti olsun
+(define (alttakini-dondur c limit a)
+  (cond
+    ((> (vc-y (cisim-yer c)) limit ) (make-cisim (cisim-imaj c) (make-vc (random 0 950)  a) (cisim-hiz c) (cisim-ivme c)))
+    (else c)))
+
+ 
+;hedef1-carpisma
+;dunya-> dunya
+(define (hedef1-carpisma w)
+  (cond 
+    ((carptimi? (dunya-oyuncu w) (dunya-hedef1 w))
+     (make-dunya (dunya-oyuncu w)
+                 (make-cisim (cisim-imaj (dunya-hedef1 w)) (make-vc (random 0 950) 140) (cisim-hiz (dunya-hedef1 w)) (cisim-ivme (dunya-hedef1 w))) (dunya-hedef2 w)
+                 (dunya-tehlike1 w)
+                 (dunya-tehlike2 w) (+ (dunya-skor w) 50))) 
+    (else w)))
+
+;hedef2-carpisma
+;dunya-> dunya
+(define (hedef2-carpisma w)
+  (cond 
+    ((carptimi? (dunya-oyuncu w) (dunya-hedef2 w))
+     (make-dunya (dunya-oyuncu w) (dunya-hedef1 w)
+                 (make-cisim (cisim-imaj (dunya-hedef2 w)) (make-vc (random 0 950) 140) (cisim-hiz (dunya-hedef2 w)) (cisim-ivme (dunya-hedef2 w))) (dunya-tehlike1 w) (dunya-tehlike2 w) (+ (dunya-skor w) 50)))
+    (else w)))
+
+;tehlike1-carpisma
+;dunya-> dunya
+(define (tehlike1-carpisma w)
+  (cond 
+    ((carptimi? (dunya-oyuncu w) (dunya-tehlike1 w))
+     (make-dunya (dunya-oyuncu w) (dunya-hedef1 w) (dunya-hedef2 w)
+                 (make-cisim (cisim-imaj (dunya-tehlike1 w)) (make-vc (random 0 950) 0) (cisim-hiz (dunya-tehlike1 w)) (cisim-ivme (dunya-tehlike1 w))) (dunya-tehlike2 w) (- (dunya-skor w) 100)))
+    (else w)))
+
+;tehlike2-carpisma
+;dunya-> dunya
+(define (tehlike2-carpisma w)
+  (cond 
+    ((carptimi? (dunya-oyuncu w) (dunya-tehlike2 w)) (make-dunya (dunya-oyuncu w) (dunya-hedef1 w) (dunya-hedef2 w) (dunya-tehlike1 w)
+                                                                 (make-cisim (cisim-imaj (dunya-tehlike2 w)) (make-vc (random 0 850) 0) (cisim-hiz (dunya-tehlike2 w)) (cisim-ivme (dunya-tehlike2 w)))
+                                                                 (- (dunya-skor w) 100)))
+    (else w)))
+
+
+
+
+;yeni-dunya
+(define (yeni-dunya w)
+  (hedef1-carpisma (hedef2-carpisma (tehlike1-carpisma (tehlike2-carpisma (dunya-ilerleme w))))))
+
+
+ ;dunya
+;c:cisim
+;dunya-ilerleme dunya->dunya
+(define (dunya-ilerleme w)
+  (make-dunya
+   (cisim-ilerleme (dunya-oyuncu w))
+   (alttakini-dondur (cisim-ilerleme (dunya-hedef1 w)) 560 150)
+   (alttakini-dondur (cisim-ilerleme (dunya-hedef2 w)) 560 150)
+   (alttakini-dondur (cisim-ilerleme (dunya-tehlike1 w)) 560 0)
+   (alttakini-dondur (cisim-ilerleme (dunya-tehlike2 w)) 560 0)
+   (dunya-skor w )))
+
+ ;dunya-tus dunya tus ->dunya
+;tus (t)
+;dunya (w)
+(define (dunya-tus w t) (make-dunya (make-cisim
+                                     (cisim-imaj OYUNCU)
+                                     (make-vc (+ (vc-x (cisim-yer (dunya-oyuncu w)))
+                                                   (cond
+                                                   ((string=? t "right") 30)
+                                                   ((string=? t "left") -30)
+                                                   (else 0))) (vc-y (cisim-yer (dunya-oyuncu w)))) (cisim-hiz (dunya-oyuncu w)) (cisim-ivme (dunya-oyuncu w)))
+                                     (dunya-hedef1 w) (dunya-hedef2 w) (dunya-tehlike1 w) (dunya-tehlike2 w) (dunya-skor w)))
+
+
+
+
+(define yaradılıs (make-dunya OYUNCU HEDEF1 HEDEF2 TEHLIKE1 TEHLIKE2 SKOR))
+
+(big-bang yaradılıs
+  (on-tick yeni-dunya (/ 1.0 FRAME-RATE))
+  (on-draw dunya-ciz)
+  (on-key dunya-tus))
+
+
