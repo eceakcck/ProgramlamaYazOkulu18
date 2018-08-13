@@ -11,7 +11,7 @@
 (require 2htdp/image)
 (require (only-in racket/gui/base play-sound))
 (require test-engine/racket-tests)
-(begin (play-sound "./theme.mp3" true) true)      
+(begin (play-sound "./theme.wav" true) true)      
 
 
 ;hedef , tehlike , oyuncu boyutunu tanımlar.

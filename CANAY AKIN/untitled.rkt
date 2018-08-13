@@ -173,7 +173,7 @@
    (cisim-imaj c2)
    (cond
      ((düştü-mü c2) (make-vc (random 750) (- (vc-y (cisim-yer c2)) 801)) )
-     ((çarpıştılar-mı c1 c2) (begin (play-sound "abc.mp3" true) true) (make-vc (random 750) (- (vc-y (cisim-yer c2)) 800)) )
+     ((çarpıştılar-mı c1 c2) (begin (play-sound "abc.wav" true) true) (make-vc (random 750) (- (vc-y (cisim-yer c2)) 800)) )
      (else (+vc (cisim-hız c2) (cisim-yer c2)))
      )
    (cond
